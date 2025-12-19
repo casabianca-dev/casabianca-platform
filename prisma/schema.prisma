@@ -1,0 +1,154 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ====== CORE PLATFORM MODELS ======
+
+model Restaurant {
+  id         String     @id @default(cuid())
+  name       String
+  slug       String     @unique
+  brandColor String?
+  logoUrl    String?
+
+  locations  Location[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Location {
+  id            String      @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+
+  name          String
+  slug          String   @unique
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  state         String
+  postalCode    String
+  phone         String?
+  isActive      Boolean  @default(true)
+
+  supportsPickup   Boolean @default(true)
+  supportsDelivery Boolean @default(true)
+
+  menuCategories   MenuCategory[]
+  orders           Order[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model MenuCategory {
+  id          String     @id @default(cuid())
+  locationId  String
+  location    Location   @relation(fields: [locationId], references: [id])
+
+  name        String
+  sortOrder   Int        @default(0)
+
+  items       MenuItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model MenuItem {
+  id             String       @id @default(cuid())
+  categoryId     String
+  category       MenuCategory @relation(fields: [categoryId], references: [id])
+
+  name           String
+  description    String?
+  basePriceCents Int
+  isActive       Boolean      @default(true)
+
+  configJson     Json?
+
+  orderItems     OrderItem[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Customer {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  phone         String?
+  name          String?
+
+  loyaltyPoints Int       @default(0)
+
+  orders        Order[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Order {
+  id              String       @id @default(cuid())
+  locationId      String
+  location        Location     @relation(fields: [locationId], references: [id])
+
+  customerId      String?
+  customer        Customer?    @relation(fields: [customerId], references: [id])
+
+  status          OrderStatus  @default(PENDING)
+  orderType       OrderType
+  scheduledFor    DateTime?
+
+  subtotalCents    Int
+  taxCents         Int
+  deliveryFeeCents Int         @default(0)
+  serviceFeeCents  Int         @default(0)
+  discountCents    Int         @default(0)
+  totalCents       Int
+
+  stripePaymentIntentId String?
+  paidAt                DateTime?
+
+  items           OrderItem[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model OrderItem {
+  id             String    @id @default(cuid())
+  orderId        String
+  order          Order     @relation(fields: [orderId], references: [id])
+
+  menuItemId     String?
+  menuItem       MenuItem? @relation(fields: [menuItemId], references: [id])
+
+  name           String
+  quantity       Int            @default(1)
+  unitPriceCents Int
+  totalCents     Int
+
+  configJson     Json?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  READY
+  COMPLETED
+  CANCELED
+}
+
+enum OrderType {
+  PICKUP
+  DELIVERY
+}
