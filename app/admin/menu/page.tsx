@@ -1,6 +1,8 @@
 // app/admin/menu/page.tsx
 import { EditPriceForm } from "./EditPriceForm";
 import { prisma } from "@/lib/prisma";
+import { AddItemForm } from "./AddItemForm";
+
 
 export default async function AdminMenuPage() {
   const location = await prisma.location.findFirst({
@@ -109,6 +111,8 @@ export default async function AdminMenuPage() {
               ))}
             </ul>
           )}
+          <AddItemForm categoryId={cat.id} />
+
         </section>
       ))}
     </main>
